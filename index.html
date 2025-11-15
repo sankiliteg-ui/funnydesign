@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>For Annu — 3D Glow Avatar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Pacifico&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#05020a;
+      --pink1:#ff57c7;
+      --pink2:#ff8bd1;
+      --glass: rgba(255,255,255,0.06);
+      --neon: rgba(255,88,199,0.15);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: radial-gradient(ellipse at 10% 10%, rgba(255,88,199,0.03), transparent 15%), linear-gradient(180deg,var(--bg) 0%, #02010a 100%);
+      color:#f8f5ff;
+      -webkit-font-smoothing:antialiased;
+      overflow:hidden;
+    }
+
+    /* Layout */
+    .wrap{
+      position:relative;
+      width:100%;
+      height:100vh;
+      display:grid;
+      place-items:center;
+      gap:20px;
+      padding:30px;
+    }
+
+    /* 3D stage */
+    .stage{
+      perspective:1400px;
+      width:min(1000px,95vw);
+      max-width:1100px;
+      margin:auto;
+    }
+
+    .card{
+      width:900px;
+      max-width:94vw;
+      height:520px;
+      margin:auto;
+      transform-style:preserve-3d;
+      transition:transform 400ms cubic-bezier(.2,.9,.3,1);
+      border-radius:20px;
+      background:linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 120px var(--neon);
+      overflow:visible;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:36px;
+      position:relative;
+    }
+
+    /* Left panel: avatar + controls */
+    .left{
+      width:48%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:18px;
+      position:relative;
+      z-index:2;
+    }
+
+    /* 3D avatar container */
+    .avatar-wrap{
+      width:240px;
+      height:240px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: inset 0 6px 18px rgba(255,88,199,0.06), 0 12px 30px rgba(0,0,0,0.6);
+      transform-style:preserve-3d;
+      transition:all 300ms ease;
+      position:relative;
+      backdrop-filter: blur(6px);
+      border:1px solid rgba(255,88,199,0.08);
+    }
+
+    .avatar{
+      width:86%;
+      height:86%;
+      border-radius:50%;
+      display:block;
+      object-fit:cover;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 30px rgba(255,88,199,0.14);
+      transform:translateZ(40px);
+      transition:transform 300ms ease;
+    }
+
+    /* shining rim */
+    .avatar-wrap:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      box-shadow: 0 0 40px rgba(255,139,209,0.12), inset 0 0 30px rgba(255,88,199,0.08);
+      pointer-events:none;
+    }
+
+    /* Right panel: message & animation */
+    .right{
+      width:48%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:18px 20px;
+      justify-content:center;
+    }
+
+    h1{
+      font-family:'Pacifico', cursive;
+      font-size:36px;
+      margin:0;
+      letter-spacing:0.6px;
+      color:var(--pink2);
+      text-shadow: 0 0 18px rgba(255,139,209,0.25);
+      transform:translateZ(60px);
+    }
+
+    p.lead{
+      margin-top:6px;
+      color:#ffe9fb;
+      opacity:0.95;
+      max-width:520px;
+      line-height:1.45;
+      transform:translateZ(40px);
+    }
+
+    /* buttons */
+    .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    .btn{
+      background:linear-gradient(90deg,var(--pink1),var(--pink2));
+      border:none;
+      padding:10px 16px;
+      border-radius:12px;
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+      box-shadow:0 8px 30px rgba(255,88,199,0.12), 0 0 30px rgba(255,88,199,0.06);
+      transition:transform .25s ease, box-shadow .25s ease;
+    }
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);}
+    .btn:active{transform:translateY(2px)}
+
+    /* 3D floating decorative cube (pure CSS) */
+    .cube-stage{
+      width:240px;height:240px; position:absolute; right:-60px; top:-60px; transform-style:preserve-3d; perspective:800px; z-index:1; pointer-events:none;
+    }
+    .cube{
+      width:100%;height:100%; transform-style:preserve-3d; animation:spin 12s linear infinite; transform-origin:center;
+    }
+    .cube .face{
+      position:absolute; inset:0; display:grid; place-items:center; font-size:48px; border-radius:14px;
+      background:linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 40px rgba(255,88,199,0.06);
+      border:1px solid rgba(255,88,199,0.05);
+    }
+    .cube .front{transform:translateZ(120px)}
+    .cube .back{transform:rotateY(180deg) translateZ(120px)}
+    .cube .right{transform:rotateY(90deg) translateZ(120px)}
+    .cube .left{transform:rotateY(-90deg) translateZ(120px)}
+    .cube .top{transform:rotateX(90deg) translateZ(120px)}
+    .cube .bottom{transform:rotateX(-90deg) translateZ(120px)}
+    @keyframes spin{from{transform:rotateX(10deg) rotateY(0deg)} to{transform:rotateX(10deg) rotateY(360deg)}}
+
+    /* header subtle glow */
+    .header-glow{position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 10% 10%, rgba(255,88,199,0.06), transparent 8%), radial-gradient(circle at 90% 80%, rgba(136,118,255,0.04), transparent 10%);} 
+
+    /* bottom bar */
+    .bar{position:absolute;left:50%;transform:translateX(-50%);bottom:22px; display:flex; gap:10px; align-items:center; padding:8px 14px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,88,199,0.06); backdrop-filter: blur(6px);}
+
+    /* small helper */
+    .muted{font-size:13px;color:rgba(255,255,255,0.65)}
+
+    /* responsive */
+    @media (max-width:880px){
+      .card{flex-direction:column; height:auto;padding:20px; gap:20px}
+      .left,.right{width:100%}
+      .cube-stage{display:none}
+    }
+
+    /* floating subtle stars (canvas handled by JS) */
+    canvas#bg-canvas{position:fixed;inset:0;z-index:-2}
+      /* Avatar pulse glow */
+    .avatar-wrap.pulse:before{
+      content:"";
+      position:absolute;
+      left:-8px;right:-8px;top:-8px;bottom:-8px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(255,88,199,0.18), rgba(255,139,209,0.06));
+      filter:blur(14px);
+      opacity:0.9;
+      pointer-events:none;
+      animation:pulse 2.6s ease-in-out infinite;
+      transform-origin:center;
+    }
+    @keyframes pulse{
+      0%{transform:scale(0.96); opacity:0.6}
+      50%{transform:scale(1.08); opacity:1}
+      100%{transform:scale(0.96); opacity:0.6}
+    }
+
+      /* Android phone optimization */
+    @media screen and (max-width:480px){
+      .card{height:auto; padding:18px; flex-direction:column;}
+      .avatar-wrap{width:180px; height:180px;}
+      h1{font-size:28px;}
+      p.lead{font-size:14px;}
+      .cube-stage{display:none;}
+      .right{padding:10px;}
+    }
+
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  <div class="wrap">
+    <div class="stage">
+      <div class="card" id="card">
+        <div class="left">
+          <div class="avatar-wrap pulse" id="avatarWrap">
+            <img src="t1.jpg" alt="Annu avatar" id="avatar" class="avatar" draggable="false">
+          </div>
+
+          
+
+          
+        </div>
+
+        <div class="right">
+          <div style="position:relative;z-index:3">
+            <h1>hlo BABU 😁</h1>
+            <p class="lead">You are so innocent and cute Babu 😂😎</p>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center;margin-top:10px">
+            <button class="btn" id="toggleFloat">CLICK Float</button>
+            <button class="btn" id="surprise">Surprise ✨</button>
+          </div>
+        </div>
+
+        <!-- decorative 3D cube -->
+        <div class="cube-stage" aria-hidden>
+          <div class="cube" id="cube">
+            <div class="face front">✨</div>
+            <div class="face back">💖</div>
+            <div class="face right">🌸</div>
+            <div class="face left">🌟</div>
+            <div class="face top">💫</div>
+            <div class="face bottom">💕</div>
+          </div>
+        </div>
+
+        <div class="header-glow"></div>
+      
+        <!-- Special Message Page (hidden by default) -->
+        <div id="messagePage" class="page-message" aria-hidden="true" style="display:none;">
+          <div class="message-card" role="dialog" aria-modal="true">
+            <h2 style="font-family:Pacifico, cursive; font-size:34px; margin-bottom:8px; color:var(--pink2);">A Special Message for Annu 💖</h2>
+            <p style="max-width:680px; line-height:1.6; color:#ffe9fb;">Dear Annu — you light up every room with your innocent smile and kind heart. This little page is made to remind you how special you are. Keep shining, stay playful, and never stop being you. 🌸✨</p>
+            <div style="margin-top:18px; display:flex; gap:12px;">
+              <button class="btn" id="closeMessage">Back</button>
+              <button class="btn secondary" id="togglePulse">click Glow</button>
+            </div>
+          </div>
+        </div>
+
+      
+        <div class="muted">Made BY  <strong>TUGGU</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 3D Mouse tilt + float animation
+    // ----------------------------
+    const card = document.getElementById('card');
+    let floatOn = true;
+    let mouseX=0, mouseY=0;
+
+    function onMove(e){
+      const rect = card.getBoundingClientRect();
+      const cx = rect.left + rect.width/2; const cy = rect.top + rect.height/2;
+      const x = ( (e.clientX || (e.touches && e.touches[0].clientX)) - cx ) / rect.width;
+      const y = ( (e.clientY || (e.touches && e.touches[0].clientY)) - cy ) / rect.height;
+      mouseX = x; mouseY = y;
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('touchmove', onMove, {passive:true});
+
+    let floatPhase = 0;
+    function animate(){
+      floatPhase += 0.01;
+      const floatY = floatOn ? Math.sin(floatPhase)*6 : 0;
+      const rotX = (mouseY * -18) + Math.sin(floatPhase*0.6)*2;
+      const rotY = (mouseX * 22) + Math.cos(floatPhase*0.6)*2;
+      const transform = `translateZ(0) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(${floatY}px)`;
+      card.style.transform = transform;
+
+      // gentle avatar pop
+      const avatar = document.getElementById('avatar');
+      avatar.style.transform = `translateZ(60px) rotateY(${rotY*0.2}deg) rotateX(${rotX*0.12}deg)`;
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    document.getElementById('toggleFloat').addEventListener('click', ()=>{ floatOn = !floatOn; document.getElementById('toggleFloat').innerText = floatOn ? 'Toggle Float' : 'Float Off'; });
+
+    // Surprise -> confetti + mini hearts
+    document.getElementById('surprise').addEventListener('click', ()=>{
+      spawnHearts(30); confettiBurst();
+    });
+
+    function spawnHearts(n){
+      for(let i=0;i<n;i++){
+        const d = document.createElement('div'); d.style.position='fixed'; d.style.left = (Math.random()*80 +10) + 'vw'; d.style.top = (Math.random()*60 +20) + 'vh'; d.style.pointerEvents='none'; d.style.zIndex=9999;
+        d.innerText = ['💗','💖','💕','🌸'][Math.floor(Math.random()*4)]; d.style.fontSize = (10 + Math.random()*28)+'px';
+        document.body.appendChild(d);
+        const dur = 1200 + Math.random()*1400;
+        d.animate([{transform:`translateY(0) scale(1)`, opacity:1},{transform:`translateY(-80vh) scale(1.6)`, opacity:0}],{duration:dur, easing:'cubic-bezier(.2,.8,.2,1)'});
+        setTimeout(()=>d.remove(), 2000+dur);
+      }
+    }
+
+    // very small confetti using canvas overlay
+    function confettiBurst(){
+      const c = document.createElement('canvas'); c.style.position='fixed'; c.style.left=0; c.style.top=0; c.style.zIndex=9998; c.width=innerWidth; c.height=innerHeight; document.body.appendChild(c);
+      const ctx = c.getContext('2d'); let pieces = [];
+      for(let i=0;i<120;i++){ pieces.push({x:innerWidth/2 + (Math.random()-0.5)*200, y: innerHeight/2 + (Math.random()-0.5)*60, vx:(Math.random()-0.5)*8, vy:(Math.random()*-8)-2, r:4+Math.random()*6, c:['#ff6fb0','#ffd6f0','#ffd1ff','#ffb3e6'][Math.floor(Math.random()*4)]}) }
+      let t = 0; function run(){ t+=16; ctx.clearRect(0,0,c.width,c.height); for(const p of pieces){ p.vy += 0.3; p.x += p.vx; p.y += p.vy; ctx.fillStyle = p.c; ctx.fillRect(p.x,p.y,p.r, p.r*0.6); }
+        if(t<2400) requestAnimationFrame(run); else c.remove(); }
+      run();
+    }
+
+    // small UX: prevent drag image ghost
+    avatarImg.addEventListener('dragstart', e=> e.preventDefault());
+
+    // Accessibility: keyboard shortcuts
+    window.addEventListener('keydown', e=>{
+      if(e.key==='d') downloadBtn.click();
+      if(e.key==='m') makeBtn.click();
+      if(e.key==='s') document.getElementById('surprise').click();
+    });
+      // ---- Special message page handlers ----
+    const messagePage = document.getElementById('messagePage');
+    const specialBtn = document.createElement('button');
+    specialBtn.className = 'btn'; specialBtn.id = 'specialBtn'; specialBtn.innerText = 'Special Message';
+    // insert special button into the .bar when DOM ready
+    window.addEventListener('load', ()=>{
+      const bar = document.querySelector('.bar');
+      if(bar){ bar.insertBefore(specialBtn, bar.firstChild); }
+      // wire buttons
+      document.getElementById('specialBtn').addEventListener('click', ()=> showMessagePage());
+      document.getElementById('closeMessage').addEventListener('click', ()=> hideMessagePage());
+      document.getElementById('togglePulse').addEventListener('click', ()=>{
+        avatarWrap.classList.toggle('pulse');
+        document.getElementById('togglePulse').innerText = avatarWrap.classList.contains('pulse') ? 'Turn Glow Off' : 'Turn Glow On';
+      });
+    });
+
+    function showMessagePage(){
+      messagePage.style.display = 'flex';
+      messagePage.setAttribute('aria-hidden','false');
+      // subtle backdrop blur
+      document.body.style.overflow = 'hidden';
+      // pause float for focus
+      floatOn = false;
+    }
+    function hideMessagePage(){
+      messagePage.style.display = 'none';
+      messagePage.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+      floatOn = true;
+    }
+    // close on Esc
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideMessagePage(); });
+
+      // ---- Fullscreen (app-like) support ----
+    const bar = document.querySelector('.bar');
+    const fsBtn = document.createElement('button'); fsBtn.className='btn'; fsBtn.id='fsBtn'; fsBtn.innerText='Enter App Mode';
+    if(bar) bar.insertBefore(fsBtn, bar.firstChild);
+
+    function enterFullscreen(){
+      const el = document.documentElement;
+      if(el.requestFullscreen) return el.requestFullscreen();
+      if(el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if(el.msRequestFullscreen) return el.msRequestFullscreen();
+    }
+    function exitFullscreen(){
+      if(document.exitFullscreen) return document.exitFullscreen();
+      if(document.webkitExitFullscreen) return document.webkitExitFullscreen();
+      if(document.msExitFullscreen) return document.msExitFullscreen();
+    }
+
+    let appMode = false;
+    fsBtn.addEventListener('click', async ()=>{
+      if(!appMode){
+        await enterFullscreen();
+        document.body.classList.add('app-fullscreen');
+        fsBtn.innerText = 'Exit App Mode';
+        appMode = true;
+      } else {
+        await exitFullscreen();
+        document.body.classList.remove('app-fullscreen');
+        fsBtn.innerText = 'Enter App Mode';
+        appMode = false;
+      }
+    });
+
+    // CSS for app-like mode + swipe animations (injected at runtime so no stylesheet edit needed)
+    const style = document.createElement('style'); style.innerHTML = `
+      body.app-fullscreen { background: linear-gradient(180deg, #05010a, #02010a); }
+      .card.app-full { position:fixed; inset:0; margin:0; width:100vw; height:100vh; border-radius:0; z-index:9999; display:flex; padding:28px; }
+      #messagePage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,1,10,0.6); z-index:10001; }
+      .message-card{ background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); padding:28px; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.6); max-width:92vw; }
+      .slide-in { animation: slideIn .45s cubic-bezier(.2,.9,.25,1) both; }
+      .slide-out { animation: slideOut .35s cubic-bezier(.2,.9,.25,1) both; }
+      @keyframes slideIn{ from{ transform: translateX(18vw); opacity:0 } to{ transform: translateX(0); opacity:1 }}
+      @keyframes slideOut{ from{ transform: translateX(0); opacity:1 } to{ transform: translateX(18vw); opacity:0 }}
+    `; document.head.appendChild(style);
+
+    // helper to toggle app-full on card when entering fullscreenchange
+    document.addEventListener('fullscreenchange', ()=>{
+      const isFS = !!document.fullscreenElement;
+      const cardEl = document.getElementById('card');
+      if(cardEl) cardEl.classList.toggle('app-full', isFS);
+    });
+
+    // ---- Swipe detection and animations ----
+    let touchStartX=0, touchStartY=0, touchStartTime=0;
+    const threshold = 60; // px
+    const allowedTime = 500; // ms
+
+    function handleTouchStart(e){
+      const t = e.touches ? e.touches[0] : e;
+      touchStartX = t.clientX; touchStartY = t.clientY; touchStartTime = Date.now();
+    }
+    function handleTouchEnd(e){
+      const t = (e.changedTouches && e.changedTouches[0]) || e;
+      const dx = t.clientX - touchStartX; const dy = t.clientY - touchStartY; const dt = Date.now() - touchStartTime;
+      if(dt <= allowedTime && Math.abs(dx) >= threshold && Math.abs(dy) < 100){
+        if(dx < 0){ // swipe left -> open special message with slide-in
+          showMessagePage(true);
+        } else { // swipe right -> close message
+          hideMessagePage(true);
+        }
+      }
+      // vertical swipe up to toggle fullscreen
+      if(dt <= allowedTime && Math.abs(dy) >= threshold && Math.abs(dx) < 100){
+        if(dy < 0){ // swipe up -> enter fullscreen
+          if(!appMode){ fsBtn.click(); }
+        } else { // swipe down -> exit fullscreen
+          if(appMode){ fsBtn.click(); }
+        }
+      }
+    }
+
+    // attach to card for local gestures
+    const gestureArea = document.getElementById('card');
+    if(gestureArea){
+      gestureArea.addEventListener('touchstart', handleTouchStart, {passive:true});
+      gestureArea.addEventListener('touchend', handleTouchEnd, {passive:true});
+      // also support mouse drag for desktop testing
+      let mouseDown=false;
+      gestureArea.addEventListener('mousedown', (e)=>{ mouseDown=true; handleTouchStart(e); });
+      window.addEventListener('mouseup', (e)=>{ if(mouseDown){ mouseDown=false; handleTouchEnd(e); } });
+    }
+
+    // updated show/hide with optional animation flag
+    function showMessagePage(animated){
+      messagePage.style.display = 'flex';
+      messagePage.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+      floatOn = false;
+      const cardEl = document.getElementById('card');
+      if(appMode && cardEl) cardEl.classList.add('app-full');
+      const mc = document.querySelector('#messagePage .message-card');
+      if(animated && mc){ mc.classList.remove('slide-out'); mc.classList.add('slide-in'); }
+    }
+    function hideMessagePage(animated){
+      const mc = document.querySelector('#messagePage .message-card');
+      if(animated && mc){ mc.classList.remove('slide-in'); mc.classList.add('slide-out'); setTimeout(()=>{ messagePage.style.display='none'; messagePage.setAttribute('aria-hidden','true'); document.body.style.overflow=''; floatOn=true; }, 320); return; }
+      messagePage.style.display = 'none'; messagePage.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; floatOn = true;
+    }
+
+    // small UX: close message on backdrop tap when visible
+    messagePage.addEventListener('click', (e)=>{ if(e.target === messagePage) hideMessagePage(true); });
+
+  </script>
+</body>
+</html>
